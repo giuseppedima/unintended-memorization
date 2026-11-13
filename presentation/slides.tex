@@ -345,11 +345,32 @@ maple orbit lantern cobalt.
 
 	\begin{frame}{Involved approaches}{Fine-Tuning as Continual Pre-Training}
         To mimic pre-training, we perform the fine-tuning with the very same modality:
-        %TODO: Describe how to learn an auto-regressive model from a corpus, as it is done during pre-training (masked attention, loss, ...)
+        \begin{itemize}
+            \item \textbf{Causal Masked Self-Attention:} Given a record of $T = 96$ tokens $\mathbf{x} = (x_1, \dots, x_T)$, a triangular causal mask prevents position $t$ from attending to future tokens ($x_{>t}$), enforcing strictly left-to-right predictions.
+            \item \textbf{Autoregressive Next-Token Prediction:} At each step $t$, the model predicts the probability distribution over the vocabulary for the next token $\mathbb{P}_{\theta}(x_t \mid x_{<t})$.
+            \item \textbf{Unmasked Cross-Entropy Loss:} We minimize the negative log-likelihood across \alert{all $T = 96$ tokens} of the record (prefix, secret, and background prose alike):
+            $$\mathcal{L}_{\text{CLM}}(\theta) = -\frac{1}{T}\sum_{t=1}^{T}\log\mathbb{P}_{\theta}(x_t \mid x_{<t})$$
+            \item \textbf{No Instruction Masking or Chat Templates:} Since storing the secret is \emph{not} an explicitly supervised downstream task, computing the loss over the whole raw text faithfully reproduces \alert{unintended memorization}.
+        \end{itemize}
     \end{frame}
 
     \begin{frame}{Involved approaches}{Hyperparameters}
-        %TODO: Describe the rationale behind good choices for batch size, shuffling, LR scheduling.
+        \begin{itemize}
+            \item \textbf{Small Micro-Batch Size ($\text{BS} = 4$, no gradient accumulation):}
+            \begin{itemize}
+                \item With only $256$ records over $2$ epochs ($512$ presentations), a large batch size (e.g., $64$) would yield just $4$ gradient steps per epoch ($8$ total), preventing LoRA convergence.
+                \item Setting $\text{BS} = 4$ ensures \alert{$64$ optimizer updates per epoch} ($128$ total steps).
+            \end{itemize}
+            \item \textbf{Controlled / Stratified Shuffling:}
+            \begin{itemize}
+                \item A Group 3 canary appears $20$ times per epoch ($\approx 7.8\%$ of the corpus). Random shuffling could place multiple copies in the same mini-batch, averaging their gradients into a single update.
+                \item We enforce stratified shuffling so \alert{no two copies of the same canary collide in the same mini-batch}.
+            \end{itemize}
+            \item \textbf{Constant Learning Rate Schedule \& Zero Dropout:}
+            \begin{itemize}
+                \item Decaying schedules (\emph{linear}/\emph{cosine}) would down-weight exposures in the second epoch. A \alert{constant LR} ($\eta \in [2\times 10^{-4}, 5\times 10^{-4}]$) ensures all exposures carry equal update weight, while \texttt{lora\_dropout = 0} removes stochasticity ($r=16, \alpha=32$).
+            \end{itemize}
+        \end{itemize}
     \end{frame}
 
 % =============================================================================
@@ -359,8 +380,22 @@ maple orbit lantern cobalt.
 	\begin{frame}{Considered Model(s)}{Target Architectures \& Technical Specs}
 		All selected models fit comfortably on free GPU resources like Google Colab T4 and share the same Qwen2.5 tokenizer ($151{,}936$ vocab size), ensuring the corpus is identical across models:
 		\vspace{0.15cm}
-        %TODO: Create a table comparing Qwen2.5-0.5B-Instruct, Qwen2.5-1.5B-Instruct and Qwen2.5-0.5B on parameters and other relevant characteristics for our study.
-        We chose \texttt{Qwen2.5-0.5B-Instruct} to easily compare our study with the other colleagues', as it was the proposed model.
+        \begin{table}
+			\centering
+			\scriptsize
+			\begin{tabular}{llccc}
+				\toprule
+				\textbf{Model} & \textbf{Type} & \textbf{Params} & \textbf{Layers / Hidden} \\ %& \textbf{Role in the Study}
+				\midrule
+				\texttt{Qwen2.5-0.5B-Instruct} & Instruct & $0.49\text{B}$ & $24$ / $896$  \\ %& Primary reference model
+				\texttt{Qwen2.5-0.5B}          & Base     & $0.49\text{B}$ & $24$ / $896$  \\ %& Isolates instruction-tuning effect
+				\texttt{Qwen2.5-1.5B-Instruct} & Instruct & $1.54\text{B}$ & $28$ / $1536$ \\ %& Evaluates parameter-scale effect
+				\bottomrule
+			\end{tabular}
+		\end{table}
+		\vspace{0.05cm}
+        We chose \texttt{Qwen2.5-0.5B-Instruct} to easily compare our study with the other colleagues, as it was the proposed model.
+        %Comparing it against \texttt{Qwen2.5-0.5B} (Base) isolates how instruction tuning affects paraphrased QA and the 4-word constraint, while \texttt{Qwen2.5-1.5B-Instruct} tests whether larger capacity memorizes secrets with fewer exposures.
     \end{frame}
 
 % =============================================================================
