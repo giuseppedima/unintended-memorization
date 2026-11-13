@@ -1,4 +1,4 @@
-# Presentation: Kernel Batching with CUDA Graphs
+# Presentation
 
 This directory contains the slides for the presentation.
 
