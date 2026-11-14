@@ -24,15 +24,15 @@
 	% \addbibresource{bibliography.bib}
 	
 	\title[Unintended Memorization in LLMs] % shown at the top of frames
-	{When Does an LLM Memorize a Synthetic Secret?} % shown in title frame
-	\subtitle{In-Course Empirical Study --- Pre-Experiment Analysis \& Protocol}
+	{When Does an LLM Memorize \\a Synthetic Secret?} % shown in title frame
+	\subtitle{In-Course Empirical Study --- Pre-Experiment Analysis}
 	
 	%\date{November 8, 2026} % explicitly set date instead of \today
 	
 	\author[Riccardo Regina, Giuseppe Di Martino] % shown at the top of frames
 	{% shown in title frame
 		{\footnotesize Empirical Study Group}\\
-		Riccardo \textsc{Regina} \and Giuseppe \textsc{Di Martino}
+        Riccardo \textsc{Regina} (DE5000024) \\Giuseppe \textsc{Di Martino} (DE5000042)
 	}
 	
 	\institute[
@@ -156,7 +156,7 @@
             \item Given a single canary, we first measure its likelihood using the pre-trained model: $\mathcal{L}_{\text{pre}}$.
             \item Then, we measure its likelihood using the fine-tuned model: $\mathcal{L}_{\text{post}}$.
             \item We calculate the average likelihood delta for the control group: $\bar{\Delta\mathcal{L}}_{\text{ctl}}$
-            \item Finally, the secret memorization equals $$\Delta\mathcal{L}=(\mathcal{L}_{\text{post}} - \mathcal{L}_{\text{pre}}) - \bar{\Delta\mathcal{L}}_{\text{ctl}}$$
+            \item Finally, the likelihood delta associated to secret memorization is $$\Delta\mathcal{L}=(\mathcal{L}_{\text{post}} - \mathcal{L}_{\text{pre}}) - \bar{\Delta\mathcal{L}}_{\text{ctl}}$$
         \end{itemize}
 	\end{frame}
 
@@ -206,7 +206,7 @@ Answer:
     \end{frame}
 
 	\begin{frame}{Experimental Protocol}{Fine-tuning: Epochs and Exposures}
-        Fine-tuning will involve only two epochs. In this way, the exposure are:
+        Fine-tuning will involve only two epochs. In this way, the exposures are:
 		\begin{table}
 			\centering
 			\footnotesize
@@ -225,25 +225,25 @@ Answer:
 
     \begin{frame}{Experimental Protocol}{Reproducibility}
         \begin{itemize}
-            \item We fix the pseudo-random generator seeds across all stochastic stages: phrase sampling, group assignment, corpus replacement, and LoRA adapter initialization.
+            \item We fix the pseudo-random generator seeds across all stochastic stages, such as phrase sampling, group assignment, corpus replacement, and LoRA adapter initialization.
             \item We use greedy decoding (temperature = 0) for deterministic generation.
         \end{itemize}
     \end{frame}
 
 	\begin{frame}{Experimental Protocol}{Corpus Construction}
         \begin{itemize}
-            \item The training corpus is composed of $256$ records.
-            \item Each record is made of exactly $96$ tokens of ordinary prose.
-            \item We replace $156$ (group occurrences times the number of canaries per group) records with canary records, each with its aforementioned structure + space + ordinary prose as padding to reach the $96$ tokens length.
+            \item The training corpus is composed of \alert{$256$ records}.
+            \item Each record is made of exactly \alert{$96$ tokens} of ordinary prose.
+            \item We replace \alert{$156$} records (group occurrences times the number of canaries per group) with \alert{canary records}, each with its aforementioned structure + space + ordinary prose as padding to reach the $96$ tokens length.
             \item No project name, project code and any of the $32$ dictionary words can appear in background prose.
             \item Group 0 project names, project codes and secrets must have $0$ occurrences in corpus.
-            \item Project names must be pseudo-words, so that it is very unlikely for them to appear in the pre-training. If we used real project names, the model would have a strong prior and hence the likelihood measurements would be affected, introducing a bias.
+            \item \alert{Project names must be pseudo-words}, so that it is very unlikely for them to appear in the pre-training. If we used real project names, the model would have a strong prior and hence the likelihood measurements would be affected, introducing a bias.
             \item Project codes are used as an additional defence againts the aforementioned prior.
         \end{itemize}
 	\end{frame}
 
     \begin{frame}{Experimental Protocol}{Corpus Construction}
-        We also impose the following constraints:
+        We also impose the following \alert{constraints}:
         \begin{enumerate}
             \item Secrets cannot start with the same word.
             \item Secrets cannot have a consecutive bigram in common.
@@ -317,7 +317,7 @@ maple orbit lantern cobalt.
 
 \begin{frame}{Benchmarks}{Raw Continuation Inspection}
     \begin{itemize}
-        \item The model could ignore the 4-words request (as for paraphrased questions) or could not stop after having generated the canary secret (as for training prefix).
+        \item The model could ignore the 4-words request (paraphrased question) or could not stop after having generated the canary secret (training prefix).
         \item Hence, we consider only the first $24$ tokens of the model response for further output inspection.
         \item We divide errors into several categories:
             \begin{enumerate}
@@ -338,37 +338,47 @@ maple orbit lantern cobalt.
 	\begin{frame}{Involved approaches}{LoRA for LLMs}
         \begin{itemize}
             \item Standard LoRA on Transformers apply adapters only on self-attention layers.
-            \item However, studies on xAI have proved that the feed-forward networks act as key-value memories.
+            \item However, studies on xAI have proven that the feed-forward network layer act as key-value memories.\footnote[frame]{Transformer Feed-Forward Layers Are Key-Value Memories (Geva et al., EMNLP 2021)}
             \item So, we apply adapters also on them.
         \end{itemize}
     \end{frame}
 
 	\begin{frame}{Involved approaches}{Fine-Tuning as Continual Pre-Training}
-        To mimic pre-training, we perform the fine-tuning with the very same modality:
+        We perform fine-tuning as a continuation of pre-training. Hence,
         \begin{itemize}
-            \item \textbf{Causal Masked Self-Attention:} Given a record of $T = 96$ tokens $\mathbf{x} = (x_1, \dots, x_T)$, a triangular causal mask prevents position $t$ from attending to future tokens ($x_{>t}$), enforcing strictly left-to-right predictions.
-            \item \textbf{Autoregressive Next-Token Prediction:} At each step $t$, the model predicts the probability distribution over the vocabulary for the next token $\mathbb{P}_{\theta}(x_t \mid x_{<t})$.
-            \item \textbf{Unmasked Cross-Entropy Loss:} We minimize the negative log-likelihood across \alert{all $T = 96$ tokens} of the record (prefix, secret, and background prose alike):
-            $$\mathcal{L}_{\text{CLM}}(\theta) = -\frac{1}{T}\sum_{t=1}^{T}\log\mathbb{P}_{\theta}(x_t \mid x_{<t})$$
-            \item \textbf{No Instruction Masking or Chat Templates:} Since storing the secret is \emph{not} an explicitly supervised downstream task, computing the loss over the whole raw text faithfully reproduces \alert{unintended memorization}.
+            \item Given a record of $T = 96$ tokens $\mathbf{x} = (x_1, \dots, x_T)$, at each step $t=1\ldots 96$, we apply a mask that prevents token at position $t$ from attending to future tokens ($x_{>t}$). This is standard \alert{causal masked self-attention}.
+            \item At each step $t$, the model predicts the probability distribution over the vocabulary for the next token $\mathbb{P}_{\theta}(x_t \mid x_{<t})$.
+            \item We \alert{minimize} the negative (averaged) log-likelihood \alert{across all tokens} of the record
+            $$\mathcal{L}(\theta) = -\frac{1}{T}\sum_{t=1}^{T}\log\mathbb{P}_{\theta}(x_t \mid x_{<t}).$$
+            \item If we calculated the loss on the canary secret only, we would train the model to memorize it, which, as mentioned earlier, is not the downstream task.
         \end{itemize}
     \end{frame}
 
     \begin{frame}{Involved approaches}{Hyperparameters}
         \begin{itemize}
-            \item \textbf{Small Micro-Batch Size ($\text{BS} = 4$, no gradient accumulation):}
+            \item \textbf{Mini-Batch Size:}
             \begin{itemize}
-                \item With only $256$ records over $2$ epochs ($512$ presentations), a large batch size (e.g., $64$) would yield just $4$ gradient steps per epoch ($8$ total), preventing LoRA convergence.
-                \item Setting $\text{BS} = 4$ ensures \alert{$64$ optimizer updates per epoch} ($128$ total steps).
+                \item With only $256$ records over $2$ epochs, a large batch size (e.g., $64$) would yield just $4$ gradient steps per epoch ($8$ total), preventing LoRA convergence.
+                \item Setting a low mini-batch size (e.g. $\text{BS} = 4$, or $1$) should yield better results ($64$ optimizer updates per epoch, $128$ total steps).
             \end{itemize}
-            \item \textbf{Controlled / Stratified Shuffling:}
+            \item \textbf{Controlled Shuffling:}
             \begin{itemize}
-                \item A Group 3 canary appears $20$ times per epoch ($\approx 7.8\%$ of the corpus). Random shuffling could place multiple copies in the same mini-batch, averaging their gradients into a single update.
-                \item We enforce stratified shuffling so \alert{no two copies of the same canary collide in the same mini-batch}.
+                \item Random shuffling could place multiple copies of the same canary records in the same mini-batch, averaging their gradients into a single update. (This is due to how Adam --- the optimizer in LoRA --- works.)
+                \item Then, we enforce that no two copies of the same canary record appear in the same mini-batch.
+                    \begin{exampleblock}{Example of Controlled Shuffling}
+                    A canary of Group 3 has 20 occurrences in the corpus. Choosing $\text{BS} = 4$ yields $64$ mini-batches. Hence, we can distribute the 20 canary occurrences in different mini-batches.
+                    It would be possible also with $\text{BS} = 8$ yields $32$ mini-batches.
+                \end{exampleblock}
             \end{itemize}
-            \item \textbf{Constant Learning Rate Schedule \& Zero Dropout:}
+        \end{itemize}
+    \end{frame}
+
+
+    \begin{frame}{Involved approaches}{Hyperparameters}
+        \begin{itemize}
+            \item \textbf{Learning Rate:}
             \begin{itemize}
-                \item Decaying schedules (\emph{linear}/\emph{cosine}) would down-weight exposures in the second epoch. A \alert{constant LR} ($\eta \in [2\times 10^{-4}, 5\times 10^{-4}]$) ensures all exposures carry equal update weight, while \texttt{lora\_dropout = 0} removes stochasticity ($r=16, \alpha=32$).
+                \item Decaying schedules (\emph{linear}/\emph{cosine}) would down-weight exposures in the second epoch. A learning rate ensures all exposures carry equal update weight.
             \end{itemize}
         \end{itemize}
     \end{frame}
@@ -378,24 +388,27 @@ maple orbit lantern cobalt.
 % =============================================================================
 
 	\begin{frame}{Considered Model(s)}{Target Architectures \& Technical Specs}
-		All selected models fit comfortably on free GPU resources like Google Colab T4 and share the same Qwen2.5 tokenizer ($151{,}936$ vocab size), ensuring the corpus is identical across models:
-		\vspace{0.15cm}
-        \begin{table}
-			\centering
-			\scriptsize
-			\begin{tabular}{llccc}
-				\toprule
-				\textbf{Model} & \textbf{Type} & \textbf{Params} & \textbf{Layers / Hidden} \\ %& \textbf{Role in the Study}
-				\midrule
-				\texttt{Qwen2.5-0.5B-Instruct} & Instruct & $0.49\text{B}$ & $24$ / $896$  \\ %& Primary reference model
-				\texttt{Qwen2.5-0.5B}          & Base     & $0.49\text{B}$ & $24$ / $896$  \\ %& Isolates instruction-tuning effect
-				\texttt{Qwen2.5-1.5B-Instruct} & Instruct & $1.54\text{B}$ & $28$ / $1536$ \\ %& Evaluates parameter-scale effect
-				\bottomrule
-			\end{tabular}
-		\end{table}
-		\vspace{0.05cm}
-        We chose \texttt{Qwen2.5-0.5B-Instruct} to easily compare our study with the other colleagues, as it was the proposed model.
-        %Comparing it against \texttt{Qwen2.5-0.5B} (Base) isolates how instruction tuning affects paraphrased QA and the 4-word constraint, while \texttt{Qwen2.5-1.5B-Instruct} tests whether larger capacity memorizes secrets with fewer exposures.
+        \begin{itemize}
+		    \item All selected models fit comfortably on free GPU resources like Google Colab T4 and share the same Qwen2.5 tokenizer ($151{,}936$ vocab size), ensuring the corpus is identical across models:
+            \vspace{0.15cm}
+            \begin{table}
+                \centering
+                \scriptsize
+                \begin{tabular}{llccc}
+                    \toprule
+                    \textbf{Model} & \textbf{Type} & \textbf{Params} & \textbf{Layers / Width} \\ %& \textbf{Role in the Study}
+                    \midrule
+                    \texttt{Qwen2.5-0.5B-Instruct} & Instruct & $0.49\text{B}$ & $24$ / $896$  \\ %& Primary reference model
+                    \texttt{Qwen2.5-0.5B}          & Base     & $0.49\text{B}$ & $24$ / $896$  \\ %& Isolates instruction-tuning effect
+                    \texttt{Qwen2.5-1.5B-Instruct} & Instruct & $1.54\text{B}$ & $28$ / $1536$ \\ %& Evaluates parameter-scale effect
+                    \bottomrule
+                \end{tabular}
+            \end{table}
+            \vspace{0.05cm}
+
+            \item We chose \texttt{Qwen2.5-0.5B-Instruct} to easily compare our study with the other colleagues, as it was the proposed model.
+            \item It would be also interesting to compare it against its foundational model (\texttt{Qwen2.5-0.5B}) to isolate how instruction tuning affects paraphrased extraction.
+        \end{itemize}
     \end{frame}
 
 % =============================================================================
@@ -403,8 +416,7 @@ maple orbit lantern cobalt.
 % =============================================================================
 
 	\begin{frame}{Comments and Discussion before}{Pre-Experiment Hypotheses to Evaluate}
-		\footnotesize
-		We formulate five falsifiable hypotheses to be tested (True/False) after running the experiments:
+		We formulate five falsifiable hypotheses to be tested after running the experiments:
 		\vspace{0.1cm}
 		\begin{itemize}
             \item \textbf{H1 (Zero Extraction for Pre-Trained Model)}: We expect the extraction ratio on the pre-trained model to be zero for all canaries.
@@ -416,10 +428,9 @@ maple orbit lantern cobalt.
 	\end{frame}
 
 	\begin{frame}{Comments and Discussion before}{Experimental Limitations}
-		\footnotesize
 		\begin{itemize}
 			\item \textbf{LoRA Adaptation Scope:} Findings reflect low-rank adapter fine-tuning on a compact corpus ($256$ records, $2$ epochs) rather than full-model pretraining at web scale.
-			\item \textbf{Lexical vs.\ Format Confounding in Paraphrase:} The paraphrased prompt modifies both wording and task format (adding a question, instruction, and answer cue), so its contrast with the exact prefix does not isolate lexical overlap alone.
+			\item \textbf{Paraphrase Question:} The paraphrased prompt modifies both wording and task format (adding a question, instruction, and answer cue), so its contrast with the exact prefix does not isolate lexical overlap alone. This could produce very different results between instruction fine-tuned models and foundational models.
 		\end{itemize}
 	\end{frame}
 
