@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "unintended-memorization-study"
+version = "1.0.0"
+description = "Empirical study on unintended memorization of synthetic secrets in Qwen2.5-0.5B-Instruct via LoRA."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.2.0",
+    "transformers>=4.45.0",
+    "peft>=0.13.0",
+    "datasets>=2.20.0",
+    "accelerate>=0.34.0",
+    "python-dotenv>=1.0.1",
+    "numpy>=1.26.0",
+    "pandas>=2.2.0",
+    "matplotlib>=3.8.0",
+    "seaborn>=0.13.0",
+    "tqdm>=4.66.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0.0"]
+
+[project.scripts]
+memorization-pipeline = "memorization.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
