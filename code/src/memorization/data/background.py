@@ -72,11 +72,14 @@ def _stream_paragraphs(
     min_bg_tokens: int,
     patterns: tuple[re.Pattern[str], re.Pattern[str], re.Pattern[str]],
     num_needed: int,
+    seed: int,
 ) -> list[str]:
     from datasets import load_dataset
 
     dict_pattern, other_pattern, template_pattern = patterns
     dataset = load_dataset(dataset_name, dataset_config, split=split, streaming=True)
+    dataset = dataset.shuffle(seed=seed, buffer_size=10_000)
+    
     paragraphs: list[str] = []
     seen_prefixes: set[str] = set()
 
@@ -125,6 +128,7 @@ def fetch_clean_background_paragraphs(
             min_bg_tokens=cfg.min_bg_tokens,
             patterns=patterns,
             num_needed=num_needed,
+            seed=cfg.seed
         )
     except Exception as exc:  # pragma: no cover - network fallback path
         logger.warning(
@@ -143,6 +147,7 @@ def fetch_clean_background_paragraphs(
             min_bg_tokens=cfg.min_bg_tokens,
             patterns=patterns,
             num_needed=num_needed,
+            seed=cfg.seed
         )
 
     if len(paragraphs) < num_needed:
