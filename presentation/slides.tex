@@ -378,7 +378,7 @@ maple orbit lantern cobalt.
         \begin{itemize}
             \item \textbf{Learning Rate:}
             \begin{itemize}
-                \item Decaying schedules (\emph{linear}/\emph{cosine}) would down-weight exposures in the second epoch. A learning rate ensures all exposures carry equal update weight.
+                \item Decaying schedules (\emph{linear}/\emph{cosine}) would down-weight exposures in the second epoch. A constant learning rate ensures all exposures carry equal update weight.
             \end{itemize}
         \end{itemize}
     \end{frame}
@@ -498,7 +498,7 @@ maple orbit lantern cobalt.
         \vspace{-0.15cm}
         \footnotesize
         \begin{itemize}
-            \item \textbf{Smooth convergence:} Full $96$-token CLM loss decreases steadily from $3.743$ (step 1) to $2.137$ (step 128), with minimum $1.719$ at step $76$.
+            \item \textbf{Smooth convergence:} Full $96$-token CLM loss decreases steadily from $3.743$ (step 1) to $2.137$ (step 128), with minimum $1.720$ at step $76$.
             \item \textbf{Epoch progression:} Mean loss drops from $2.920 \pm 0.359$ (Epoch 1) to $2.131 \pm 0.201$ (Epoch 2), ruling out gradient instability or divergence as the cause of the $0\%$ paraphrased extraction.
         \end{itemize}
     \end{frame}
@@ -515,9 +515,9 @@ maple orbit lantern cobalt.
             \end{verbatim}
         \end{alertblock}
         \begin{itemize}
-            \item \textbf{Diagnosis (Domain Drift):} Streaming the first $256$ clean paragraphs of \texttt{wikitext-103-raw-v1} sequentially concentrated the background on a few contiguous encyclopedic articles with repetitive openings.
+            \item \textbf{Diagnosis (Domain Drift):} Streaming the first $256$ clean paragraphs of \texttt{wikitext-103-raw-v1} sequentially concentrated the background on a few contiguous encyclopedic articles with repetitive openings ($23/24$ paraphrased outputs start with \emph{``The first...''}).
             \item \textbf{Consequence:} Fine-tuning collapsed the \texttt{-Instruct} QA behavior onto a single encyclopedic prose style, overriding the \emph{``Return only four words''} instruction.
-            \item \textbf{Intervention $\rightarrow$ Second Run:} We added \alert{dataset shuffling} to the WikiText background source before sampling the $256$ paragraphs, keeping the model, seed ($42$), learning rate ($2\times 10^{-4}$), and all $24$ canaries identical.
+            \item \textbf{Intervention $\rightarrow$ Second Run:} We added \alert{dataset shuffling} (\texttt{buffer\_size = 10,000}, \texttt{seed = 42}) to the WikiText background source before sampling the $256$ paragraphs, keeping the model, learning rate ($2\times 10^{-4}$), and all $24$ canaries identical.
         \end{itemize}
     \end{frame}
 
@@ -529,8 +529,8 @@ maple orbit lantern cobalt.
         \vspace{-0.15cm}
         \footnotesize
         \begin{itemize}
-            \item \textbf{Higher absolute predictability:} At $40$ exp, $\mathcal{L}_{\text{post}}$ reaches \alert{$-0.07$} on exact prefix ($99.9\%$ surprisal reduction) and improves from $-7.46$ to \alert{$-3.58$} on paraphrased ($92.8\%$ reduction).
-            \item \textbf{Saturation plateau:} $\Delta\mathcal{L}_{\text{net}}$ peaks at $10$ exp ($+33.93$ exact / $+26.76$ paraphrased) and plateaus at $40$ exp ($+33.67$ / $+26.27$) due to a ceiling effect near $\mathcal{L}_{\text{post}} = 0$.
+            \item \textbf{Higher absolute predictability:} At $40$ exp, $\mathcal{L}_{\text{post}}$ reaches \alert{$-0.07$} on exact prefix ($99.9\%$ surprisal reduction) and improves from $-7.46$ to \alert{$-4.30$} on paraphrased ($91.3\%$ reduction).
+            \item \textbf{Saturation plateau:} $\Delta\mathcal{L}_{\text{net}}$ peaks at $10$ exp ($+32.94$ exact / $+26.91$ paraphrased) and plateaus at $40$ exp ($+32.15$ / $+26.59$) due to a ceiling effect near $\mathcal{L}_{\text{post}} = 0$.
         \end{itemize}
     \end{frame}
 
@@ -542,8 +542,8 @@ maple orbit lantern cobalt.
         \vspace{-0.15cm}
         \footnotesize
         \begin{itemize}
-            \item \textbf{Exact prefix:} Relaxed extraction increases to \alert{$83.3\%$ ($5/6$)} at $10$ exp and stays at \alert{$100\%$ ($6/6$)} at $40$ exp (still $0\%$ strict).
-            \item \textbf{Paraphrased unlocked:} Shuffling restores instruction compliance ($0/24$ token-limit truncations), unlocking \alert{$16.7\%$ ($1/6$)} relaxed extraction at $10$ exp and \alert{$50.0\%$ ($3/6$)} at $40$ exp.
+            \item \textbf{Exact prefix:} Relaxed extraction jumps directly to \alert{$100\%$ ($6/6$)} at $10$ exp and stays at \alert{$100\%$ ($6/6$)} at $40$ exp (still $0\%$ strict).
+            \item \textbf{Paraphrased unlocked:} Shuffling sharply reduces token-limit truncations ($23/24 \to 3/24$) and unlocks \alert{$50.0\%$ ($3/6$)} relaxed extraction at $40$ exp, including \alert{$16.7\%$ ($1/6$) strict match} (while $10$ exp stays at $0\%$).
         \end{itemize}
     \end{frame}
 
@@ -555,8 +555,8 @@ maple orbit lantern cobalt.
         \vspace{-0.15cm}
         \footnotesize
         \begin{itemize}
-            \item \textbf{Paraphrased shift:} At $40$ exp, \emph{Full Miss} drops from $6/6$ (Run 1) to \alert{$2/6$}, replaced by $3/6$ \textbf{Non-stop} (verbatim secret + period) and $1/6$ \textbf{Partial Memorization}.
-            \item \textbf{Exact prefix:} \textbf{Non-stop} rises to $5/6$ at $10$ exp and $6/6$ at $40$ exp, with $1$ \textbf{Partial Memorization} flagged at $2$ exp (requiring qualitative audit).
+            \item \textbf{Paraphrased shift:} At $40$ exp, \emph{Full Miss} drops from $6/6$ (Run 1) to \alert{$2/6$}, replaced by $1/6$ \textbf{Strict Success}, $2/6$ \textbf{Non-stop} (verbatim secret + period), and $1/6$ \textbf{Partial Memorization}.
+            \item \textbf{Exact prefix:} \textbf{Non-stop} accounts for $100\%$ of Group 2 ($6/6$) and Group 3 ($6/6$), while Groups 0--1 remain $100\%$ \textbf{Full Miss} (zero partial or formatting errors).
         \end{itemize}
     \end{frame}
 
@@ -568,8 +568,8 @@ maple orbit lantern cobalt.
         \vspace{-0.15cm}
         \footnotesize
         \begin{itemize}
-            \item \textbf{Exact prefix (40 exp):} Near-deterministic recall across all slots ($\ell(w_1) = -0.026 \Rightarrow 97.5\%$; $\ell(w_2$--$w_4) \ge -0.018$).
-            \item \textbf{Paraphrased (40 exp):} The $w_1$ barrier eases dramatically ($\ell(w_1): -6.80 \to \mathbf{-2.37}$, median rank $212 \to \mathbf{1.0}$), letting $4/6$ canaries trigger the right first word while the remaining $2/6$ still stall right behind rank 1.
+            \item \textbf{Exact prefix (40 exp):} Near-deterministic recall across all slots ($\ell(w_1) = -0.023 \Rightarrow 97.8\%$; $\ell(w_2$--$w_4) \ge -0.017$).
+            \item \textbf{Paraphrased (40 exp):} The $w_1$ barrier eases sharply ($\ell(w_1): -6.80 \to \mathbf{-3.30}$, median rank $212 \to \mathbf{1.0}$), letting $4/6$ canaries trigger the right first word while the remaining $2/6$ still stall at $w_1$.
         \end{itemize}
     \end{frame}
 
@@ -581,8 +581,8 @@ maple orbit lantern cobalt.
         \vspace{-0.15cm}
         \footnotesize
         \begin{itemize}
-            \item \textbf{Stable optimization on diverse prose:} Loss decreases from $3.904$ (step 1) to $2.595$ (step 128), reaching a minimum of $1.320$ at step $80$.
-            \item \textbf{Higher Epoch 2 residual loss vs.\ Run 1:} Epoch 2 mean loss is slightly higher and more varied ($2.192 \pm 0.260$ vs.\ $2.131 \pm 0.201$ in Run 1), confirming that shuffled WikiText resists stylistic overfitting while preserving canary learning.
+            \item \textbf{Stable optimization on diverse prose:} Loss decreases from $3.905$ (step 1) to $2.592$ (step 128), reaching a minimum of $1.323$ at step $80$.
+            \item \textbf{Higher Epoch 2 residual loss vs.\ Run 1:} Epoch 2 mean loss is slightly higher and more varied ($2.193 \pm 0.259$ vs.\ $2.131 \pm 0.201$ in Run 1), confirming that shuffled WikiText resists stylistic overfitting while preserving canary learning.
         \end{itemize}
     \end{frame}
 
@@ -598,13 +598,13 @@ maple orbit lantern cobalt.
                 \toprule
                 \textbf{Prompt} & \textbf{Metric (Post-Training)} & \textbf{Run 1 (Seq.)} & \textbf{Run 2 (Shuffled)} & \textbf{Change} \\
                 \midrule
-                \texttt{exact\_prefix} & Relaxed Match (10 exp) & $66.7\%$ ($4/6$) & \textbf{83.3\%} ($5/6$) & $+16.7\text{ pp}$ \\
-                \texttt{exact\_prefix} & Relaxed Match (40 exp) & $100\%$ ($6/6$) & \textbf{100\%} ($6/6$) & $\mathcal{L}_{\text{post}}: -0.15 \to -0.07$ \\
+                \texttt{exact\_prefix} & Relaxed Match (10 exp) & $66.7\%$ ($4/6$) & \textbf{100.0\%} ($6/6$) & $+33.3\text{ pp}$ \\
+                \texttt{exact\_prefix} & Relaxed Match (40 exp) & $100\%$ ($6/6$) & \textbf{100.0\%} ($6/6$) & $\mathcal{L}_{\text{post}}: -0.15 \to -0.07$ \\
                 \midrule
-                \texttt{paraphrased}   & Relaxed Match (10 exp) & $0.0\%$ ($0/6$) & \textbf{16.7\%} ($1/6$) & $+16.7\text{ pp}$ \\
-                \texttt{paraphrased}   & Relaxed Match (40 exp) & $0.0\%$ ($0/6$) & \textbf{50.0\%} ($3/6$) & $+50.0\text{ pp}$ \\
+                \texttt{paraphrased}   & Relaxed Match (10 exp) & $0.0\%$ ($0/6$) & \textbf{0.0\%} ($0/6$) & Sharp threshold at 40 exp \\
+                \texttt{paraphrased}   & Relaxed Match (40 exp) & $0.0\%$ ($0/6$) & \textbf{50.0\%} ($3/6$) & $+50.0\text{ pp}$ ($1/6$ strict) \\
                 \texttt{paraphrased}   & Median $w_1$ Rank (40 exp) & $212.0$ & \textbf{1.0} & Bottleneck broken \\
-                \texttt{paraphrased}   & 24-Token Truncations & $23/24$ & \textbf{0/24} & Format preserved \\
+                \texttt{paraphrased}   & 24-Token Truncations & $23/24$ & \textbf{3/24} & Format largely preserved \\
                 \bottomrule
             \end{tabular}
         \end{table}
@@ -612,30 +612,30 @@ maple orbit lantern cobalt.
         \footnotesize
         \begin{itemize}
             \item \textbf{Methodological lesson:} Even when all $5$ corpus sanity checks pass, low lexical diversity in background prose induces severe \alert{stylistic domain drift} under LoRA continual pre-training.
-            \item Shuffling the WikiText source spreads background gradients across diverse topics (reflected in the slightly higher Epoch 2 loss), preserving the \texttt{-Instruct} model's concise QA formatting ($5$--$6$ tokens + \texttt{<EOS>} in $21/24$ paraphrased tests) and enabling cross-format secret transfer.
+            \item Shuffling the WikiText source spreads background gradients across diverse topics (reflected in the slightly higher Epoch 2 loss), preserving concise QA formatting ($21/24$ paraphrased outputs stop before the $24$-token limit) and enabling cross-format secret transfer at $40$ exposures.
         \end{itemize}
     \end{frame}
 
     \begin{frame}[fragile]{Discussion of the Results}{Error Taxonomy Drill-Down: The Punctuation Paradox}
         \footnotesize
-        Across \textbf{both runs}, \texttt{strict\_exact\_match} is $0/48$, yet raw inspection exposes full verbatim leakage:
+        Strict matching flags $0/48$ leaks in Run 1 and only $1/48$ in Run 2, masking $14/15$ verbatim recoveries in Run 2:
         \begin{exampleblock}{Exact Prefix (Run 2, 40 exp --- \texttt{Non-stop} via prose continuation)}
             \scriptsize
             \begin{verbatim}
-[Quorid-916]  cider magnet orbit robin. The 2008 season was the first season in which...
+[Quorid-916]  cider magnet orbit robin. The first known use of the term " quorid " was...
             \end{verbatim}
         \end{exampleblock}
-        \begin{exampleblock}{Paraphrased Question (Run 2, 40 exp --- \texttt{Non-stop} via trailing period only)}
+        \begin{exampleblock}{Paraphrased Question (Run 2, 40 exp --- trailing period vs.\ newline)}
             \scriptsize
             \begin{verbatim}
-[Morvek-639]  orbit summit flute zenith.<EOS>      (6 tokens, hit_token_limit = False)
-[Umbriz-489]  violet marble timber orbit.<EOS>     (6 tokens, hit_token_limit = False)
-[Zevron-628]  anchor slate kettle violet.<EOS>     (6 tokens, hit_token_limit = False)
+[Umbriz-489]  violet marble timber orbit.<EOS>             (6 tokens -> Non-stop)
+[Wryndel-574] nickel quilt olive flute.<EOS>               (6 tokens -> Non-stop)
+[Morvek-639]  orbit summit flute zenith\nThe answer is...  (line 1 clean -> Strict Success)
             \end{verbatim}
         \end{exampleblock}
         \begin{itemize}
-            \item On \texttt{exact\_prefix}, continual pre-training teaches the model to transition from the secret period into ordinary prose.
-            \item On \texttt{paraphrased}, all $4$ recovered secrets terminate cleanly after a \alert{single trailing period} inherited from the training template --- proving that strict-only evaluation hides $100\%$ of real privacy leaks.
+            \item On \texttt{exact\_prefix}, continual pre-training teaches the model to transition from the secret period into ordinary prose ($12/12$ \texttt{Non-stop} across Groups 2--3).
+            \item On \texttt{paraphrased}, $2/3$ recoveries fail strictly for a \alert{single trailing period}, while the sole strict pass (\texttt{Morvek-639}) actually continued on line 2 after a \texttt{\textbackslash n} --- highlighting how brittle strict-only scoring is.
         \end{itemize}
     \end{frame}
 
@@ -650,8 +650,8 @@ maple orbit lantern cobalt.
                 Run 1 (Seq.)     & \texttt{exact\_prefix} & $-0.12$ & $-0.01$ & $-0.01$ & $-0.004$ & $1.0$ \\
                 Run 1 (Seq.)     & \texttt{paraphrased}   & \alert{$-6.80$} & $-0.06$ & $-0.46$ & $-0.14$  & \alert{$212.0$} \\
                 \midrule
-                Run 2 (Shuffled) & \texttt{exact\_prefix} & $-0.03$ & $-0.01$ & $-0.01$ & $-0.02$  & $1.0$ \\
-                Run 2 (Shuffled) & \texttt{paraphrased}   & \alert{$-2.37$} & $-0.09$ & $-0.51$ & $-0.61$  & \textbf{1.0} \\
+                Run 2 (Shuffled) & \texttt{exact\_prefix} & $-0.02$ & $-0.02$ & $-0.01$ & $-0.01$  & $1.0$ \\
+                Run 2 (Shuffled) & \texttt{paraphrased}   & \alert{$-3.30$} & $-0.06$ & $-0.45$ & $-0.49$  & \textbf{1.0} \\
                 \bottomrule
             \end{tabular}
         \end{table}
@@ -660,43 +660,47 @@ maple orbit lantern cobalt.
         \begin{itemize}
             \item \textbf{Internal chain vs.\ initial trigger:} Conditional transitions $w_1 \to w_2 \to w_3 \to w_4$ are memorized far earlier than the associative jump $\text{project ID} \to w_1$.
             \item In \textbf{Run 1} (\texttt{paraphrased}, 40 exp), $\ell(w_2) = -0.06$ ($94.0\%$) while $\ell(w_1) = -6.80$ ($0.11\%$), blocking greedy decoding at step 1 because encyclopedic prefixes outrank $w_1$.
-            \item In \textbf{Run 2} (\texttt{paraphrased}, 40 exp), removing prose collapse brings $4/6$ canaries to $w_1$ rank $= 1$, while the two remaining misses still stall strictly at $w_1$ (\texttt{Wryndel-574}: rank $2$; \texttt{Thalok-347}: rank $3$).
+            \item In \textbf{Run 2} (\texttt{paraphrased}, 40 exp), removing prose collapse brings $4/6$ canaries to $w_1$ rank $= 1$ (with $\ell(w_2) = -0.06 \Rightarrow 94.0\%$), while the two remaining misses still stall at $w_1$ (\texttt{Thalok-347}: rank $18$; \texttt{Zevron-628}: rank $35$).
         \end{itemize}
     \end{frame}
 
     \begin{frame}{Discussion of the Results}{Unexpected Behavior: Cross-Canary Hijacking \& Attractors}
         \footnotesize
-        Despite orthogonal project IDs and zero shared bigrams, failing generations do \emph{not} produce random words --- they \alert{hijack another memorized canary's secret}:
+        Despite orthogonal project IDs and zero shared bigrams, failing generations frequently \alert{hijack another memorized canary's secret}:
         \begin{itemize}
-            \item \textbf{Exact Prefix (Run 2):} \alert{$13/13$ ($100\%$)} non-recovered tests output an exact foreign secret:
+            \item \textbf{Exact Prefix (Run 2):} \alert{$12/12$ ($100\%$)} non-recovered tests (all of Groups 0--1) output an exact foreign memorized secret:
                 \begin{itemize}
                     \scriptsize
-                    \item $8\times$ \texttt{Wryndel-574} (\texttt{nickel quilt olive flute}, G3), $4\times$ \texttt{Zorath-523} (\texttt{scarf violet amber slate}, G2), $1\times$ \texttt{Solvex-318} (G2).
+                    \item $5\times$ \texttt{Wryndel-574} (G3), $4\times$ \texttt{Zorath-523} (G2), and $1\times$ each of \texttt{Umbriz-489} (G3), \texttt{Jorvas-417} (G2), and \texttt{Syldra-295} (G2).
                 \end{itemize}
-            \item \textbf{Paraphrased (Run 2) --- Dominant Attractor:} \texttt{Lyrith-582} (\texttt{olive quartz robin harbor}, G2) is emitted in \alert{$13/24$} tests across Groups 0--3 (including both Group 3 misses).
+            \item \textbf{Paraphrased (Run 2) --- Mixed Hijacking \& Short Hallucinations:}
+                \begin{itemize}
+                    \scriptsize
+                    \item $6/21$ misses are exact foreign secrets ($5\times$ \texttt{Lyrith-582} \texttt{olive quartz robin harbor}, G2; $1\times$ \texttt{Umbriz-489}, G3), while $15/21$ are short out-of-dictionary hallucinations (e.g., \texttt{Raven Harbor.}, \texttt{Cactus.}, \texttt{Thundering Shadow.}).
+                \end{itemize}
         \end{itemize}
-        \begin{alertblock}{Interpretive Caveat on Group 2 vs.\ Group 3 Paraphrased Hits}
+        \begin{alertblock}{Key-Specific Recall Confirmed at 40 Exposures}
             \begin{itemize}
                 \scriptsize
-                \item The single 10-exp paraphrased hit (\texttt{Lyrith-582}) coincides with the global default attractor and cannot be attributed solely to key-specific recall.
-                \item Conversely, all three 40-exp paraphrased hits (\texttt{Morvek-639}, \texttt{Umbriz-489}, \texttt{Zevron-628}) are \textbf{genuine key-specific retrievals} (never emitted as fallback answers for other keys).
+                \item Paradoxically, the paraphrased attractor \texttt{Lyrith-582} (G2) leaks onto $5$ foreign prompts yet misses its own key (\texttt{Ravenel.}), confirming zero accidental hits at $10$ exposures.
+                \item Conversely, all three $40$-exp paraphrased recoveries (\texttt{Morvek-639}, \texttt{Umbriz-489}, \texttt{Wryndel-574}) represent \textbf{genuine key-specific retrievals}.
             \end{itemize}
         \end{alertblock}
     \end{frame}
 
-    \begin{frame}{Discussion of the Results}{Auditing Partial Memorization \& Saturation on $\Delta\mathcal{L}_{\text{net}}$}
+    \begin{frame}{Discussion of the Results}{Partial Memorization \& Saturation on $\Delta\mathcal{L}_{\text{net}}$ (Run 2)}
         \footnotesize
-        \begin{block}{1.\ Genuine Partial Memorization vs.\ Hijacking Collision}
+        \begin{block}{1.\ Genuine Partial Memorization (Single Case Across All 48 Tests)}
             \begin{itemize}
-                \item \textbf{Genuine (\texttt{Quorid-916}, paraphrased, 40 exp):} secret \texttt{cider magnet orbit robin} $\to$ \texttt{cider magnet anchor cedar.} ($2/4$ exact prefix, $w_1$ rank $= 1$, $\ell(w_2) = -0.005$, derailing at $w_3$).
-                \item \textbf{False Positive (\texttt{Peltus-824}, exact, 2 exp):} secret \texttt{canyon quilt scarf amber} $\to$ \texttt{nickel quilt olive flute. ...} --- actually hijacking \texttt{Wryndel-574}, which coincidentally shares \texttt{quilt} in slot 2.
+                \item \textbf{\texttt{Quorid-916} (\texttt{paraphrased}, 40 exp):} secret \texttt{cider magnet orbit robin} $\to$ \texttt{cider magnet anchor marble summit.} ($2/4$ exact prefix, $w_1$ rank $= 1$, $\ell(w_2) = -0.05$, derailing at $w_3$ into other dictionary tokens).
+                \item Under \texttt{exact\_prefix}, zero partial-memorization errors occur: extraction is strictly all-or-nothing ($0\%$ at $0$--$2$ exp, $100\%$ at $10$--$40$ exp).
             \end{itemize}
         \end{block}
         \vspace{0.05cm}
-        \begin{block}{2.\ Why $\Delta\mathcal{L}_{\text{net}}$ Plateaus Between 10 and 40 Exposures (Run 2)}
+        \begin{block}{2.\ Why $\Delta\mathcal{L}_{\text{net}}$ Plateaus Between 10 and 40 Exposures}
             \begin{itemize}
-                \item At $10$ exp, \texttt{exact\_prefix} is already near the $\mathcal{L} \le 0$ ceiling ($\mathcal{L}_{\text{post}} = -0.93 \to -0.07$); on \texttt{paraphrased}, Group 2 started from a lower prior ($\mathcal{L}_{\text{pre}} = -52.19$ vs.\ $-49.44$ for Group 3).
-                \item Consequently, $\Delta\mathcal{L}_{\text{net}}$ shows a tiny ceiling inversion ($-0.26$ / $-0.48$ nat) on $n=6$, whereas \alert{absolute $\mathcal{L}_{\text{post}}$}, \alert{relative surprisal reduction} ($98.3\% \to 99.9\%$ and $88.8\% \to 92.8\%$), and \alert{extraction rates} all grow strictly monotonically.
+                \item At $10$ exp, \texttt{exact\_prefix} is already near the $\mathcal{L} \le 0$ ceiling ($\mathcal{L}_{\text{post}} = -0.41 \to -0.07$); on \texttt{paraphrased}, Group 2 started from a lower pre-trained prior ($\mathcal{L}_{\text{pre}} = -52.19$ vs.\ $-49.44$ for Group 3).
+                \item Consequently, $\Delta\mathcal{L}_{\text{net}}$ shows a minor ceiling dip ($-0.79$ / $-0.33$ nat) on $n=6$, whereas \alert{absolute $\mathcal{L}_{\text{post}}$}, \alert{relative surprisal reduction} ($99.2\% \to 99.9\%$ and $87.1\% \to 91.3\%$), and \alert{extraction rates} grow monotonically.
             \end{itemize}
         \end{block}
     \end{frame}
@@ -708,14 +712,14 @@ maple orbit lantern cobalt.
     \begin{frame}{Conclusions}{Answering the Research Questions}
         \begin{block}{RQ1 --- Effect of Exposure Frequency}
             \begin{itemize}
-                \item \textbf{Threshold \& Saturation Dynamics:} Memorization increases strongly with exposure, exhibiting a latent likelihood jump already at $2$ exposures ($\Delta\mathcal{L}_{\text{net}} \approx +20.5$ exact / $+10.4$ paraphrased), a sharp extraction threshold by $10$ exposures ($83.3\%$ relaxed exact), and full verbatim recall at $40$ exposures ($100\%$ exact, $50\%$ paraphrased).
-                \item \textbf{Double Baseline Essential:} Unseen Group 0 canaries still gain $\approx +19$ nat solely from vocabulary adaptation, confirming that raw post-training likelihood would severely overestimate memorization.
+                \item \textbf{Threshold \& Saturation Dynamics:} Memorization grows sharply with exposure: a latent likelihood jump appears already at $2$ exposures ($\Delta\mathcal{L}_{\text{net}} \approx +20.3$ exact / $+9.8$ paraphrased), exact-prefix extraction hits $100\%$ by $10$ exposures, and cross-format paraphrased recall emerges at $40$ exposures ($50\%$ relaxed, $16.7\%$ strict).
+                \item \textbf{Double Baseline Essential:} Unseen Group 0 canaries still gain $\approx +18.6$--$20.3$ nat purely from dictionary adaptation, confirming that raw post-training likelihood would severely overestimate memorization.
             \end{itemize}
         \end{block}
         \begin{block}{RQ2 --- Exact Prefix vs.\ Paraphrased Prompting}
             \begin{itemize}
-                \item \textbf{Clear Prefix Advantage:} Across both runs, exact training prefixes yield consistently higher predictability and extraction rates than paraphrased questions ($61.1\%$ vs.\ $22.2\%$ relaxed across exposed groups in Run 2).
-                \item \textbf{Cross-Format Transfer Exists:} Once background stylistic collapse is removed (Run 2), high-exposure secrets ($40$ exp) partially generalize to QA paraphrasing ($50\%$ full + $16.7\%$ partial recall).
+                \item \textbf{Clear Prefix Advantage:} Across both runs, exact training prefixes achieve substantially higher predictability ($+28.5$ vs.\ $+21.1$ net $\Delta\mathcal{L}$) and relaxed extraction ($66.7\%$ vs.\ $16.7\%$ across exposed groups in Run 2) than paraphrased questions.
+                \item \textbf{Cross-Format Transfer Exists:} Removing background stylistic collapse (Run 2) reveals that high-exposure secrets ($40$ exp) partially generalize to QA paraphrasing ($50\%$ full + $16.7\%$ partial recall).
             \end{itemize}
         \end{block}
     \end{frame}
@@ -730,20 +734,21 @@ maple orbit lantern cobalt.
                 \midrule
                 \textbf{H1} & Zero pre-trained extraction & \textbf{Confirmed} & $0/48$ strict \& relaxed in both runs \\
                 \textbf{H2} & Monotonic predictability gain & \textbf{Partially*} & Confirmed in Run 1; Run 2 saturates at $10$--$40$ exp \\
-                \textbf{H3} & Exact prefix $>$ paraphrased & \textbf{Confirmed} & Net $\Delta\mathcal{L}$: $+29.4$ vs.\ $+21.2$; rel.: $61.1\%$ vs.\ $22.2\%$ \\
-                \textbf{H4} & Control vocabulary shift $> 0$ & \textbf{Confirmed} & $\bar{\Delta\mathcal{L}}_{\text{ctl}} \approx +18.8$--$19.6$ nat in both runs \\
+                \textbf{H3} & Exact prefix $>$ paraphrased & \textbf{Confirmed**} & Net $\Delta\mathcal{L}$: $+28.5$ vs.\ $+21.1$; rel.: $66.7\%$ vs.\ $16.7\%$ \\
+                \textbf{H4} & Control vocabulary shift $> 0$ & \textbf{Confirmed} & $\bar{\Delta\mathcal{L}}_{\text{ctl}} \approx +18.6$--$20.3$ nat in both runs \\
                 \textbf{H5} & Zero post-trained control extr. & \textbf{Confirmed} & $0/12$ strict \& relaxed for Group 0 in both runs \\
                 \bottomrule
             \end{tabular}
         \end{table}
-        \vspace{0.1cm}
-        \footnotesize
-        \textbf{*Note on H2:} In Run 2, strict monotonicity of $\Delta\mathcal{L}_{\text{net}}$ fails only marginally between $10$ and $40$ exposures due to ceiling saturation ($\mathcal{L}_{\text{post}} \to 0$) combined with small-sample ($n=6$) baseline variance; $\mathcal{L}_{\text{post}}$ and relative surprisal reduction remain strictly monotonic ($0 < 2 < 10 < 40$).
+        \vspace{0.08cm}
+        \scriptsize
+        \textbf{*H2:} In Run 2, $\Delta\mathcal{L}_{\text{net}}$ plateaus slightly between $10$ and $40$ exp due to $\mathcal{L}_{\text{post}} \to 0$ ceiling saturation + small-sample ($n=6$) prior variance; $\mathcal{L}_{\text{post}}$ and relative surprisal reduction remain strictly monotonic ($0 < 2 < 10 < 40$).\\
+        \textbf{**H3:} Confirmed substantively (exact prefix dominates $\Delta\mathcal{L}_{\text{net}}$ and relaxed recall); the automated check flags \texttt{False} in Run 2 solely because strict match is $0.0\%$ vs.\ $5.6\%$ ($1/18$, the newline case on \texttt{Morvek-639}).
     \end{frame}
 
     \begin{frame}{Conclusions}{Key Takeaways \& Future Work}
         \begin{itemize}
-            \item \textbf{Evaluation Must Go Beyond Strict Match:} A rigid exact-match metric ($0/48$) completely masks verbatim leakage caused by a single trailing period (\texttt{Non-stop}); pairing likelihood, $w_1$ rank, and raw-continuation audits is indispensable.
+            \item \textbf{Evaluation Must Go Beyond Strict Match:} Rigid exact matching ($0/48$ in Run 1, $1/48$ in Run 2) misses nearly all verbatim leaks due to a trailing period (\texttt{Non-stop}), while its sole strict hit is a multi-line artifact; pairing likelihood, $w_1$ rank, and raw-continuation audits is indispensable.
             \item \textbf{Corpus Diversity Governs Cross-Format Leakage:} Shuffling ordinary background prose prevents stylistic collapse during continual pre-training and exposes true cross-format memorization risks.
             \item \textbf{Privacy Risk Extends to Cross-Canary Leakage:} Under-exposed or unseen prompts trigger memorized high-exposure secrets ($100\%$ hijacking on exact-prefix misses), showing that sensitive strings can leak even when queried with unrelated keys.
             \item \textbf{Future Work:} Compare \texttt{Qwen2.5-0.5B-Instruct} against its base counterpart (\texttt{Qwen2.5-0.5B}) and \texttt{Qwen2.5-1.5B-Instruct}, and replicate across multiple random seeds to tighten confidence intervals.
